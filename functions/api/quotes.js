@@ -53,7 +53,7 @@ async function handle(request, env) {
     const page = url.searchParams.get('page') || '';
     if (!PAGE_RE.test(page)) return json({ error: 'bad page' }, 400, origin);
     const res = await env.DB.prepare(
-      'SELECT id, para_idx, quote, name, text, created_at FROM quote_comments WHERE page = ?1 ORDER BY id DESC LIMIT 500'
+      "SELECT q.id, q.para_idx, q.quote, q.name, q.text, q.created_at, (SELECT COUNT(*) FROM likes l WHERE l.target_type = 'quote' AND l.target_id = q.id) AS likes FROM quote_comments q WHERE q.page = ?1 ORDER BY q.id DESC LIMIT 500"
     ).bind(page).all();
     return json(res.results || [], 200, origin);
   }

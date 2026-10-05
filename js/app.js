@@ -128,6 +128,7 @@
       (prev ? '<a href="#/read/' + prev.num + '"><span class="dir">上一节</span><span class="ttl">' + esc(prev.title) + '</span></a>' : '<span></span>') +
       (next ? '<a class="next" href="#/read/' + next.num + '"><span class="dir">下一节</span><span class="ttl">' + esc(next.title) + '</span></a>' : '<span></span>') +
       '    </nav>' +
+      '<div id="hot-quotes" class="hot-quotes" hidden></div>' +
       commentsHtml('chapter-' + ch.num, ch.title) +
       '  </article>' +
       '  <aside class="rail rail-right"><div class="rail-label">本 章 人 物</div>' +
@@ -148,7 +149,7 @@
         '<span class="pr">' + esc(c.profile.length > 52 ? c.profile.slice(0, 52) + '……' : c.profile) + '</span></span></a>';
     }).join('');
     return '<div class="page-narrow">' +
-      '<h1 class="page-title">人物图鉴</h1><p class="page-sub">七班的群像 · 按全书提及次数排序 · 点击进入人物故事</p>' +
+      '<h1 class="page-title">人物图鉴</h1><p class="page-sub">七班的群像 · 按全书提及次数排序 · 点击进入人物故事 · <a href="#/graph" style="color:var(--accent-deep)">查看人物关系图 →</a></p>' +
       '<div class="char-grid">' + cards + '</div></div>';
   }
 
@@ -264,7 +265,8 @@
         }
         listEl.innerHTML = list.map(function (c) {
           return '<div class="comment-item"><div class="c-head"><b>' + esc(c.name) + '</b>' +
-            '<span>' + esc(fmtTime(c.created_at)) + '</span></div>' +
+            '<span>' + esc(fmtTime(c.created_at)) + '</span>' +
+            likeBtnHtml('comment', c.id, c.likes) + '</div>' +
             '<div class="c-text">' + esc(c.text) + '</div></div>';
         }).join('');
       })
@@ -301,6 +303,84 @@
         })
         .catch(function (err) { errEl.textContent = err.message; })
         .finally(function () { btn.disabled = false; btn.textContent = '发 表'; });
+    });
+  }
+
+  /* ---------- 点赞 ---------- */
+  var LIKE_API = 'https://jiushijiu.pages.dev/api/likes';
+  var likedSet = {};
+  try { (JSON.parse(localStorage.getItem('jsj-liked') || '[]')).forEach(function (k) { likedSet[k] = 1; }); } catch (e) {}
+
+  function saveLiked() {
+    try { localStorage.setItem('jsj-liked', JSON.stringify(Object.keys(likedSet))); } catch (e) {}
+  }
+
+  function likeBtnHtml(type, id, count) {
+    var liked = likedSet[type + ':' + id] ? ' liked' : '';
+    return '<button type="button" class="like-btn' + liked + '" data-t="' + type + '" data-id="' + id + '">❤ <span>' + (count || 0) + '</span></button>';
+  }
+
+  function bindLikeButtons(root) {
+    (root || document).addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('.like-btn');
+      if (!btn) return;
+      var key = btn.dataset.t + ':' + btn.dataset.id;
+      if (likedSet[key]) return; // 已赞过
+      btn.disabled = true;
+      fetch(LIKE_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: btn.dataset.t, id: Number(btn.dataset.id) })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.ok) throw new Error(d.error || '点赞失败');
+          likedSet[key] = 1; saveLiked();
+          btn.classList.add('liked');
+          btn.querySelector('span').textContent = d.count;
+        })
+        .catch(function () {})
+        .finally(function () { btn.disabled = false; });
+    });
+  }
+  bindLikeButtons();
+
+  /* ---------- 本章最热句子 ---------- */
+  function renderHotQuotes() {
+    var box = document.getElementById('hot-quotes');
+    if (!box) return;
+    var byQuote = {};
+    quoteGroups.forEach(function (g) {
+      var k = g.para_idx + '::' + g.quote;
+      if (!byQuote[k]) byQuote[k] = { quote: g.quote, comments: 0, likes: 0 };
+      byQuote[k].comments += g.comments.length;
+      g.comments.forEach(function (c) { byQuote[k].likes += c.likes || 0; });
+    });
+    var top = Object.keys(byQuote).map(function (k) { return byQuote[k]; })
+      .sort(function (a, b) { return b.likes - a.likes || b.comments - a.comments; })
+      .slice(0, 3)
+      .filter(function (q) { return q.likes > 0 || q.comments > 0; });
+    if (!top.length) { box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = '<div class="rail-label">本 章 最 热 句 子</div>' +
+      top.map(function (q, i) {
+        return '<div class="hot-item" data-quote="' + i + '"><span class="hot-rank">' + (i + 1) + '</span>' +
+          '<span class="hot-text">「' + esc(trunc(q.quote, 40)) + '」</span>' +
+          '<span class="hot-meta">' + q.comments + ' 条评论 · ' + q.likes + ' ❤</span></div>';
+      }).join('');
+    box.querySelectorAll('.hot-item').forEach(function (el, i) {
+      el.addEventListener('click', function () {
+        var q = top[i];
+        var group = quoteGroups.filter(function (g) { return g.quote === q.quote; })[0];
+        if (!group) return;
+        var mark = document.querySelector('.qmark[data-g="' + quoteGroups.indexOf(group) + '"]');
+        if (mark) {
+          mark.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          setTimeout(function () {
+            mark.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+          }, 400);
+        }
+      });
     });
   }
 
@@ -346,7 +426,7 @@
     rows.forEach(function (r) {
       var k = r.para_idx + '::' + r.quote;
       if (!(k in map)) { map[k] = { para_idx: r.para_idx, quote: r.quote, comments: [] }; groups.push(map[k]); }
-      map[k].comments.push({ id: r.id, name: r.name, text: r.text, created_at: r.created_at });
+      map[k].comments.push({ id: r.id, name: r.name, text: r.text, created_at: r.created_at, likes: r.likes || 0 });
     });
     return groups;
   }
@@ -362,6 +442,7 @@
         if (!Array.isArray(rows)) return;
         quoteGroups = groupQuoteRows(rows);
         renderParaMarks();
+        renderHotQuotes();
       })
       .catch(function () {});
   }
@@ -370,7 +451,11 @@
     return fetch(QUOTE_API + '?page=' + encodeURIComponent(quotePage))
       .then(function (r) { return r.json(); })
       .then(function (rows) {
-        if (Array.isArray(rows)) { quoteGroups = groupQuoteRows(rows); renderParaMarks(); }
+        if (Array.isArray(rows)) {
+          quoteGroups = groupQuoteRows(rows);
+          renderParaMarks();
+          renderHotQuotes();
+        }
       });
   }
 
@@ -421,7 +506,7 @@
       '<div class="qp-quote">「' + esc(trunc(group.quote, 60)) + '」</div>' +
       group.comments.map(function (c) {
         return '<div class="qp-item"><div class="c-head"><b>' + esc(c.name) + '</b><span>' +
-          esc(fmtTime(c.created_at)) + '</span></div><div class="qp-text">' + esc(c.text) + '</div></div>';
+          esc(fmtTime(c.created_at)) + '</span>' + likeBtnHtml('quote', c.id, c.likes) + '</div><div class="qp-text">' + esc(c.text) + '</div></div>';
       }).join('') +
       '<button type="button" class="qp-add" id="qp-add">+ 也说一句</button>';
     placeFixed(pop, anchorRect, { center: true, below: true });
@@ -524,6 +609,104 @@
       .finally(function () { btn.disabled = false; btn.textContent = '发 表'; });
   }
 
+  /* ---------- 人物关系图 ---------- */
+  function viewGraph() {
+    return '<div class="page-narrow graph-page">' +
+      '<h1 class="page-title">人物关系图</h1><p class="page-sub">按宿舍、班委、球场小团伙聚簇 · 点击人物进入专属页面</p>' +
+      '<div class="card graph-wrap"><svg id="graph-svg" viewBox="0 0 900 640" role="img" aria-label="人物关系图"></svg></div>' +
+      '<div class="graph-legend">' + EXTRAS.groups.map(function (g, i) {
+        return '<span class="chip"><i class="dot" style="background:' + GRAPH_COLORS[i % GRAPH_COLORS.length] + '"></i>' + esc(g.name) + '</span>';
+      }).join('') + '</div>' +
+      '</div>';
+  }
+
+  var GRAPH_COLORS = ['#7c8f7c', '#8f8a7c', '#7c8a8f', '#94867a', '#86948a', '#948f7a', '#8a9486', '#94788a', '#7d8f9c', '#9c8f7d'];
+
+  function buildGraph() {
+    var svg = document.getElementById('graph-svg');
+    if (!svg) return;
+    var W = 900, H = 640, CX = W / 2, CY = H / 2;
+    var groups = EXTRAS.groups;
+    var hubs = groups.map(function (g, i) {
+      var ang = (i / groups.length) * Math.PI * 2 - Math.PI / 2;
+      return { gi: i, name: g.name, tx: CX + Math.cos(ang) * 258, ty: CY + Math.sin(ang) * 218, x: CX + Math.cos(ang) * 258, y: CY + Math.sin(ang) * 218, vx: 0, vy: 0 };
+    });
+    var people = chars.map(function (c) {
+      var gi = groups.length - 1;
+      for (var i = 0; i < groups.length; i++) {
+        if (groups[i].members.indexOf(c.id) !== -1) { gi = i; break; }
+      }
+      return { c: c, gi: gi, x: CX + (Math.random() - 0.5) * 320, y: CY + (Math.random() - 0.5) * 240, vx: 0, vy: 0 };
+    });
+
+    // 轻量力导向:斥力 + 人-团伙弹簧 + 团伙锚定圆环
+    var nodes = hubs.concat(people);
+    for (var iter = 0; iter < 450; iter++) {
+      for (var i = 0; i < nodes.length; i++) {
+        for (var j = i + 1; j < nodes.length; j++) {
+          var a = nodes[i], b = nodes[j];
+          var dx = b.x - a.x, dy = b.y - a.y;
+          var d2 = dx * dx + dy * dy;
+          if (d2 < 1) d2 = 1;
+          if (d2 < 165 * 165) {
+            var d = Math.sqrt(d2);
+            var f = ((165 - d) / 165) * 0.55;
+            var fx = (dx / d) * f, fy = (dy / d) * f;
+            a.vx -= fx; a.vy -= fy; b.vx += fx; b.vy += fy;
+          }
+        }
+      }
+      people.forEach(function (p) {
+        var h = hubs[p.gi];
+        var dx = h.x - p.x, dy = h.y - p.y;
+        var d = Math.sqrt(dx * dx + dy * dy) || 1;
+        var f = (d - 84) * 0.035;
+        p.vx += (dx / d) * f; p.vy += (dy / d) * f;
+      });
+      hubs.forEach(function (h) {
+        h.vx += (h.tx - h.x) * 0.06; h.vy += (h.ty - h.y) * 0.06;
+        h.vx *= 0.82; h.vy *= 0.82;
+        h.x += h.vx; h.y += h.vy;
+      });
+      people.forEach(function (p) {
+        p.vx *= 0.82; p.vy *= 0.82;
+        p.x += p.vx; p.y += p.vy;
+        p.x = Math.max(46, Math.min(W - 46, p.x));
+        p.y = Math.max(56, Math.min(H - 40, p.y));
+      });
+    }
+
+    var s = '';
+    people.forEach(function (p) {
+      groups.forEach(function (g, gi) {
+        if (g.members.indexOf(p.c.id) === -1) return;
+        var h = hubs[gi];
+        var primary = gi === p.gi;
+        s += '<line x1="' + p.x.toFixed(1) + '" y1="' + p.y.toFixed(1) + '" x2="' + h.x.toFixed(1) + '" y2="' + h.y.toFixed(1) +
+          '" stroke="' + (primary ? '#d8d1bf' : '#eae5d9') + '" stroke-width="' + (primary ? 1 : 0.8) + '"/>';
+      });
+    });
+    hubs.forEach(function (h, i) {
+      var w = h.name.length * 15 + 22;
+      var col = GRAPH_COLORS[i % GRAPH_COLORS.length];
+      s += '<g><rect x="' + (h.x - w / 2).toFixed(1) + '" y="' + (h.y - 14).toFixed(1) + '" width="' + w + '" height="28" rx="14" fill="' + col + '" opacity="0.92"/>' +
+        '<text x="' + h.x.toFixed(1) + '" y="' + (h.y + 5).toFixed(1) + '" text-anchor="middle" font-size="13" fill="#fff">' + esc(h.name) + '</text></g>';
+    });
+    people.forEach(function (p) {
+      var col = GRAPH_COLORS[p.gi % GRAPH_COLORS.length];
+      var memberships = groups.map(function (g) { return g.name; }).filter(function (n, i) { return groups[i].members.indexOf(p.c.id) !== -1; }).join(' · ');
+      s += '<g class="gnode" data-id="' + p.c.id + '" style="cursor:pointer">' +
+        '<title>' + esc(p.c.name + ' — ' + p.c.role) + '\n' + esc(memberships) + '</title>' +
+        '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="7" fill="' + col + '" stroke="#fbfaf7" stroke-width="2"/>' +
+        '<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 22).toFixed(1) + '" text-anchor="middle" font-size="12.5" fill="#6b665c">' + esc(p.c.name) + '</text></g>';
+    });
+    svg.innerHTML = s;
+    svg.onclick = function (e) {
+      var g = e.target.closest && e.target.closest('.gnode');
+      if (g) location.hash = '#/character/' + g.dataset.id;
+    };
+  }
+
   /* ---------- 路由 ---------- */
   function route() {
     var hash = location.hash.replace(/^#\/?/, '');
@@ -536,6 +719,8 @@
       html = viewReader(parts[1]); navKey = 'read'; showFont = true;
     } else if (parts[0] === 'characters') {
       html = viewCharacters(); navKey = 'characters';
+    } else if (parts[0] === 'graph') {
+      html = viewGraph(); navKey = 'graph';
     } else if (parts[0] === 'character') {
       html = viewCharacter(parts[1]); navKey = 'characters';
     } else if (parts[0] === 'timeline') {
@@ -552,6 +737,7 @@
     fontCtrl.hidden = !showFont;
     initComments();
     if (parts[0] === 'read' && showFont) { ensurePopLayer(); initQuotes(parts[1]); }
+    if (parts[0] === 'graph') { buildGraph(); }
 
     document.querySelectorAll('.site-nav a').forEach(function (a) {
       a.classList.toggle('active', a.dataset.nav === navKey);

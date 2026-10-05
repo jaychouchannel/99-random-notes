@@ -280,6 +280,38 @@ mark.qmark:hover { background: linear-gradient(transparent 40%, rgba(214, 197, 1
 }
 .quote-form-pop #qf-submit:disabled { opacity: .5; }
 
+/* ---------- 点赞 / 最热句子 ---------- */
+.like-btn {
+  margin-left: auto; border: none; background: none; cursor: pointer;
+  font-family: inherit; font-size: 12px; color: var(--muted);
+  padding: 2px 8px; border-radius: 999px; transition: all .2s;
+}
+.like-btn:hover { background: var(--panel-2); }
+.like-btn.liked { color: #b0654f; }
+.hot-quotes { margin-top: 48px; border-top: 1px solid var(--border); padding-top: 24px; }
+.hot-quotes .rail-label { margin-bottom: 14px; }
+.hot-item {
+  display: flex; gap: 10px; align-items: baseline; cursor: pointer;
+  padding: 10px 16px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; margin-bottom: 8px; transition: border-color .2s;
+}
+.hot-item:hover { border-color: var(--accent); }
+.hot-rank { color: var(--accent-deep); font-style: italic; font-size: 14px; }
+.hot-text { font-size: 14px; line-height: 1.7; }
+.hot-meta { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* ---------- 人物关系图 ---------- */
+.graph-wrap { padding: 8px; }
+.graph-wrap svg { display: block; width: 100%; height: auto; }
+.graph-legend { margin-top: 16px; }
+.graph-legend .dot {
+  display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+  margin-right: 6px; vertical-align: baseline;
+}
+@media (max-width: 800px) {
+  .hot-meta { margin-left: auto; }
+}
+
 /* ---------- 页脚 ---------- */
 .site-footer {
   border-top: 1px solid var(--border); padding: 22px; text-align: center;
