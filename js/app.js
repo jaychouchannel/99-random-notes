@@ -69,9 +69,9 @@
       '  <h1>九十九散记</h1>' +
       '  <div class="en">Class 7, Grade 1 — a memoir in fragments</div>' +
       '  <div class="home-divider"></div>' +
-      '  <p class="home-intro">一部关于高一七班的回忆录:军训只办了一天,班主任开着白色大奔冲进篮球场,班里一半的人在打球,另一半在给打球的人起外号。故事从新生报到开始,停在那个封校看世界杯的冬天——第 23 节之后,尚待追忆。</p>' +
+      '  <p class="home-intro">一部关于高一七班的回忆录:军训只办了一天,班主任开着白色大奔冲进篮球场,班里一半的人在打球,另一半在给打球的人起外号。故事从新生报到开始,封校、网课、世界杯、千纸鹤与一场高烧,一直写到高一上学期在期末考中收官。</p>' +
       '  <div class="home-stats">' +
-      '    <div class="home-stat"><div class="n">' + (chapters.length - 1) + '</div><div class="l">章节</div></div>' +
+      '    <div class="home-stat"><div class="n">' + chapters.length + '</div><div class="l">章节</div></div>' +
       '    <div class="home-stat"><div class="n">' + peopleCount + '</div><div class="l">人物</div></div>' +
       '    <div class="home-stat"><div class="n">' + Math.round(DATA.wordCount / 1000) + 'k</div><div class="l">字数</div></div>' +
       '  </div>' +
@@ -215,7 +215,7 @@
   function viewAbout() {
     return '<div class="page-narrow about">' +
       '<h1 class="page-title">关于本站</h1><p class="page-sub">一部 Word 文档的另一种打开方式</p>' +
-      '<p>《九十九散记》原是一份 Word 文档,记录了作者(外号"高鸡")高中入学第一年在七班的经历与人物。全站共 22 个完整章节,约 ' + Math.round(DATA.wordCount / 1000) + ' 千字,故事停在第 23 节——一页空白。</p>' +
+      '<p>《九十九散记》原是一份 Word 文档,记录了作者(外号"高鸡")高中入学第一年在七班的经历与人物。全书 25 节、约 ' + Math.round(DATA.wordCount / 1000) + ' 千字,从新生报到一直写到高一上学期结束。</p>' +
       '<p>本站把原文拆成三个入口:<b>中间读正文,左侧翻章节,右侧认人物</b>。右侧"本章人物"由程序按别名自动统计生成;每个人物页面里的"相关片段"也是从原文自动抽取的,人物小传与标签则为整理时手写。</p>' +
       '<p>页面均为纯静态 HTML / CSS / JavaScript,数据内嵌于 js 文件中,无需服务器,双击 index.html 即可打开。</p>' +
       '<p>人名均为回忆录中的外号。愿这些名字和他们的故事,被记得久一点。</p>' +
