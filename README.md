@@ -12,7 +12,21 @@ css/style.css   全部样式(淡色素色主题)
 js/data.js      正文数据:22 个章节 + 空白的第 23 节,由 Word 文档自动切分生成
 js/extra.js     手工数据:29 位人物小传、时间线、高光语录
 js/app.js       hash 路由与页面渲染(首页 / 阅读 / 人物 / 时间线 / 语录 / 关于)
+functions/api/comments.js   留言接口(Pages Functions,绑定 D1 数据库)
+wrangler.toml   Pages 项目配置(D1 绑定)
 ```
+
+## 留言功能
+
+- 章节页与人物页底部各有一个留言区,数据存在 Cloudflare D1 数据库 `jiushijiu-comments`
+- 接口:`GET/POST /api/comments`(同域名,无需鉴权);`DELETE /api/comments?id=<id>&key=<ADMIN_KEY>` 供管理员删留言
+- 管理员密钥存放在本地 `D:\jiushijiu\comments-worker\admin_key.txt`(不要提交进仓库),删除留言示例:
+
+```
+curl -X DELETE "https://jiushijiu.pages.dev/api/comments?id=1&key=<你的ADMIN_KEY>"
+```
+
+- 防滥用:同一 IP 十分钟内最多 3 条,昵称 ≤20 字、留言 ≤500 字,IP 只存哈希
 
 ## 本地预览
 
