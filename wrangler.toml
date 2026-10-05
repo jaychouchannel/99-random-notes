@@ -1,0 +1,8 @@
+name = "jiushijiu"
+pages_build_output_dir = "."
+compatibility_date = "2026-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "jiushijiu-comments"
+database_id = "d75ae323-faef-4f3a-84d9-0268c3cf0fdc"

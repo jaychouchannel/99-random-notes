@@ -126,6 +126,7 @@
       (prev ? '<a href="#/read/' + prev.num + '"><span class="dir">上一节</span><span class="ttl">' + esc(prev.title) + '</span></a>' : '<span></span>') +
       (next ? '<a class="next" href="#/read/' + next.num + '"><span class="dir">下一节</span><span class="ttl">' + esc(next.title) + '</span></a>' : '<span></span>') +
       '    </nav>' +
+      commentsHtml('chapter-' + ch.num, ch.title) +
       '  </article>' +
       '  <aside class="rail rail-right"><div class="rail-label">本 章 人 物</div>' +
       (railPeople || '<div style="font-size:13px;color:var(--muted);padding:8px">本节未提及已收录人物</div>') +
@@ -185,6 +186,7 @@
       '<p class="char-profile" style="margin-top:20px">' + esc(c.profile) + '</p>' +
       '<div class="char-appear"><div class="rail-label" style="border-bottom:none;margin-bottom:8px">出 现 于(全书 ' + st.total + ' 次)</div>' + appear + '</div>' +
       '<div class="rail-label" style="margin-bottom:14px">相 关 片 段</div>' + exHtml +
+      commentsHtml('character-' + c.id, c.name) +
       '</div>';
   }
 
@@ -224,6 +226,80 @@
       '<a class="chip" href="#/">回到首页</a></div>';
   }
 
+  /* ---------- 留言区 ---------- */
+  var COMMENT_API = 'https://jiushijiu.pages.dev/api/comments';
+
+  function fmtTime(s) {
+    var d = new Date(s.replace(' ', 'T') + 'Z');
+    if (isNaN(d)) return s;
+    return (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 ' +
+      String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+
+  function commentsHtml(pageId, pageTitle) {
+    return '<section class="comments" id="comments" data-page="' + esc(pageId) + '">' +
+      '<div class="rail-label">留 言 · ' + esc(pageTitle) + '</div>' +
+      '<div class="comment-list" id="comment-list"><div class="comment-empty">留言加载中……</div></div>' +
+      '<form class="comment-form" id="comment-form">' +
+      '  <input id="comment-name" maxlength="20" placeholder="怎么称呼你(可不填)">' +
+      '  <textarea id="comment-text" maxlength="500" rows="3" placeholder="说点什么吧……" required></textarea>' +
+      '  <div class="comment-form-foot"><span class="comment-err" id="comment-err"></span>' +
+      '  <button type="submit">发 表</button></div>' +
+      '</form></section>';
+  }
+
+  function loadComments(pageId) {
+    var listEl = document.getElementById('comment-list');
+    fetch(COMMENT_API + '?page=' + encodeURIComponent(pageId))
+      .then(function (r) { return r.json(); })
+      .then(function (list) {
+        if (!document.getElementById('comment-list')) return;
+        if (!list.length) {
+          listEl.innerHTML = '<div class="comment-empty">还没有人留言,来抢个沙发吧。</div>';
+          return;
+        }
+        listEl.innerHTML = list.map(function (c) {
+          return '<div class="comment-item"><div class="c-head"><b>' + esc(c.name) + '</b>' +
+            '<span>' + esc(fmtTime(c.created_at)) + '</span></div>' +
+            '<div class="c-text">' + esc(c.text) + '</div></div>';
+        }).join('');
+      })
+      .catch(function () {
+        var el = document.getElementById('comment-list');
+        if (el) el.innerHTML = '<div class="comment-empty">留言加载失败,刷新试试。</div>';
+      });
+  }
+
+  function initComments() {
+    var section = document.getElementById('comments');
+    if (!section) return;
+    var pageId = section.dataset.page;
+    loadComments(pageId);
+    document.getElementById('comment-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var errEl = document.getElementById('comment-err');
+      var btn = this.querySelector('button');
+      var name = document.getElementById('comment-name').value.trim();
+      var text = document.getElementById('comment-text').value.trim();
+      errEl.textContent = '';
+      if (!text) { errEl.textContent = '写点内容再发表吧'; return; }
+      btn.disabled = true; btn.textContent = '发表中……';
+      fetch(COMMENT_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page: pageId, name: name, text: text })
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) throw new Error(res.d.error || '发表失败');
+          document.getElementById('comment-text').value = '';
+          loadComments(pageId);
+        })
+        .catch(function (err) { errEl.textContent = err.message; })
+        .finally(function () { btn.disabled = false; btn.textContent = '发 表'; });
+    });
+  }
+
   /* ---------- 路由 ---------- */
   function route() {
     var hash = location.hash.replace(/^#\/?/, '');
@@ -250,6 +326,7 @@
 
     app.innerHTML = html;
     fontCtrl.hidden = !showFont;
+    initComments();
 
     document.querySelectorAll('.site-nav a').forEach(function (a) {
       a.classList.toggle('active', a.dataset.nav === navKey);
