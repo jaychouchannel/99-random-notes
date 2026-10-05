@@ -573,11 +573,12 @@
   window.addEventListener('scroll', updateProgress, { passive: true });
 
   /* ---------- 字号 ---------- */
-  var FONT_SIZES = { small: '15px', normal: '17px', large: '19px' };
+  // 三档直接改 html 根字号,全站 rem 字号一起缩放
+  var FONT_SIZES = { small: '14.5px', normal: '16px', large: '18px' };
   var saved = null;
   try { saved = localStorage.getItem('jiushijiu-font'); } catch (e) {}
   if (saved && FONT_SIZES[saved]) {
-    document.documentElement.style.setProperty('--fs-body', FONT_SIZES[saved]);
+    document.documentElement.style.fontSize = FONT_SIZES[saved];
   }
   function markFontBtn() {
     var cur = saved || 'normal';
@@ -589,7 +590,7 @@
     var btn = e.target.closest('button');
     if (!btn) return;
     saved = btn.dataset.font;
-    document.documentElement.style.setProperty('--fs-body', FONT_SIZES[saved]);
+    document.documentElement.style.fontSize = FONT_SIZES[saved];
     try { localStorage.setItem('jiushijiu-font', saved); } catch (err) {}
     markFontBtn();
   });
