@@ -707,6 +707,108 @@
     };
   }
 
+  /* ---------- 全文搜索 ---------- */
+  function hi(text, q) {
+    // 原文转义后高亮命中片段
+    var lower = text.toLowerCase(), i = lower.indexOf(q);
+    if (i === -1) return esc(text);
+    var start = Math.max(0, i - 18);
+    var pre = (start > 0 ? '……' : '') + text.slice(start, i);
+    var hit = text.slice(i, i + q.length);
+    var tail = text.slice(i + q.length, i + q.length + 30);
+    return esc(pre) + '<mark>' + esc(hit) + '</mark>' + esc(tail) + (i + q.length + 30 < text.length ? '……' : '');
+  }
+
+  function initSearch() {
+    var input = document.getElementById('search-input');
+    var panel = document.getElementById('search-results');
+    if (!input) return;
+    var timer = null;
+
+    function doSearch(q) {
+      var chap = [], ppl = [], quo = [];
+      chapters.forEach(function (ch) {
+        var hit = { num: ch.num, title: ch.title, excerpt: null };
+        var tl = ch.title.toLowerCase();
+        if (tl.indexOf(q) !== -1) { chap.push(hit); return; }
+        for (var i = 0; i < ch.paragraphs.length; i++) {
+          if (ch.paragraphs[i].toLowerCase().indexOf(q) !== -1) {
+            hit.excerpt = { p: ch.paragraphs[i], pos: ch.paragraphs[i].toLowerCase().indexOf(q) };
+            chap.push(hit);
+            break;
+          }
+        }
+      });
+      chars.forEach(function (c) {
+        var hay = (c.name + ' ' + c.aliases.join(' ') + ' ' + c.role + ' ' + c.tags.join(' ') + ' ' + c.profile).toLowerCase();
+        if (hay.indexOf(q) !== -1) ppl.push(c);
+      });
+      EXTRAS.quotes.forEach(function (qt) {
+        if ((qt.text + ' ' + qt.by).toLowerCase().indexOf(q) !== -1) quo.push(qt);
+      });
+
+      if (!chap.length && !ppl.length && !quo.length) {
+        panel.innerHTML = '<div class="sr-empty">没有找到「' + esc(input.value.trim()) + '」相关的内容</div>';
+        panel.hidden = false;
+        return;
+      }
+      var html = '';
+      if (chap.length) {
+        html += '<div class="sr-group">章节</div>';
+        chap.slice(0, 6).forEach(function (h) {
+          html += '<a class="sr-item" href="#/read/' + h.num + '">' +
+            '<span class="sr-title">' + hi(h.num + ' ' + h.title, q) + '</span>' +
+            (h.excerpt ? '<span class="sr-excerpt">' + hi(h.excerpt.p, q) + '</span>' : '') +
+            '</a>';
+        });
+      }
+      if (ppl.length) {
+        html += '<div class="sr-group">人物</div>';
+        ppl.slice(0, 6).forEach(function (c) {
+          html += '<a class="sr-item" href="#/character/' + c.id + '">' +
+            '<span class="sr-title">' + hi(c.name + ' · ' + c.role, q) + '</span>' +
+            '<span class="sr-excerpt">' + hi(c.profile, q) + '</span></a>';
+        });
+      }
+      if (quo.length) {
+        html += '<div class="sr-group">语录</div>';
+        quo.slice(0, 4).forEach(function (qt) {
+          html += '<a class="sr-item" href="#/read/' + qt.chapter + '">' +
+            '<span class="sr-title">' + hi(qt.text, q) + '</span>' +
+            '<span class="sr-excerpt">' + esc(qt.by) + ' · 第 ' + qt.chapter + ' 节</span></a>';
+        });
+      }
+      panel.innerHTML = html;
+      panel.hidden = false;
+    }
+
+    input.addEventListener('input', function () {
+      clearTimeout(timer);
+      var q = input.value.trim().toLowerCase();
+      if (!q) { panel.hidden = true; return; }
+      timer = setTimeout(function () { doSearch(q); }, 150);
+    });
+    input.addEventListener('focus', function () {
+      if (input.value.trim() && panel.innerHTML) panel.hidden = false;
+    });
+    document.addEventListener('mousedown', function (e) {
+      if (!e.target.closest || !e.target.closest('#search-box')) panel.hidden = true;
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { panel.hidden = true; input.blur(); }
+      if (e.key === 'Enter') {
+        var first = panel.querySelector('a.sr-item');
+        if (first) { location.hash = first.getAttribute('href'); panel.hidden = true; input.blur(); }
+      }
+    });
+    // 路由切换后收起面板并清空
+    window.addEventListener('hashchange', function () {
+      panel.hidden = true;
+      input.value = '';
+    });
+  }
+  initSearch();
+
   /* ---------- 路由 ---------- */
   function route() {
     var hash = location.hash.replace(/^#\/?/, '');
@@ -742,7 +844,20 @@
     document.querySelectorAll('.site-nav a').forEach(function (a) {
       a.classList.toggle('active', a.dataset.nav === navKey);
     });
-    document.title = '九十九散记 · 一部班级回忆录';
+    // 每页动态标题(分享/历史记录可辨识)
+    var pageTitle = '';
+    if (parts[0] === 'read') {
+      var cur = chapters.filter(function (c) { return c.num === parts[1]; })[0];
+      if (cur) pageTitle = '第 ' + cur.num + ' 节 · ' + cur.title;
+    } else if (parts[0] === 'characters') pageTitle = '人物图鉴';
+    else if (parts[0] === 'character') {
+      var cc = charById[parts[1]];
+      if (cc) pageTitle = cc.name + ' · 人物';
+    } else if (parts[0] === 'graph') pageTitle = '人物关系图';
+    else if (parts[0] === 'timeline') pageTitle = '时间线';
+    else if (parts[0] === 'quotes') pageTitle = '高光语录';
+    else if (parts[0] === 'about') pageTitle = '关于';
+    document.title = pageTitle ? pageTitle + ' | 九十九散记' : '九十九散记 · 一部班级回忆录';
 
     progressBar.style.width = '0';
     updateProgress();
