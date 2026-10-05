@@ -19,14 +19,17 @@ wrangler.toml   Pages 项目配置(D1 绑定)
 ## 留言功能
 
 - 章节页与人物页底部各有一个留言区,数据存在 Cloudflare D1 数据库 `jiushijiu-comments`
-- 接口:`GET/POST /api/comments`(同域名,无需鉴权);`DELETE /api/comments?id=<id>&key=<ADMIN_KEY>` 供管理员删留言
-- 管理员密钥存放在本地 `D:\jiushijiu\comments-worker\admin_key.txt`(不要提交进仓库),删除留言示例:
+- **划线评论**:在正文划选一句话即可"引用留言",原句带荧光标记,悬停显示该句的所有评论;数据在 D1 的 `quote_comments` 表
+- 接口:`GET/POST /api/comments`、`GET/POST /api/quotes`(同域名,无需鉴权);两者均支持 `DELETE ?id=<id>&key=<ADMIN_KEY>` 供管理员删除
+- 管理员密钥存放在本地 `D:\jiushijiu\comments-worker\admin_key.txt`(不要提交进仓库),删除示例:
 
 ```
 curl -X DELETE "https://jiushijiu.pages.dev/api/comments?id=1&key=<你的ADMIN_KEY>"
+curl -X DELETE "https://jiushijiu.pages.dev/api/quotes?id=1&key=<你的ADMIN_KEY>"
 ```
 
-- 防滥用:同一 IP 十分钟内最多 3 条,昵称 ≤20 字、留言 ≤500 字,IP 只存哈希
+- 防滥用:同一 IP 十分钟内各最多 3 条,昵称 ≤20 字、内容 ≤500 字、引用原句 ≤150 字,IP 只存哈希
+- 注意:Pages Functions 按文件路径路由(`functions/api/comments.js` → `/api/comments`),新增接口要建对应的 `functions/api/xxx.js` 文件
 
 ## 本地预览
 

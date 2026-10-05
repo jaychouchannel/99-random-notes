@@ -221,6 +221,65 @@ mark { background: var(--mark); color: inherit; padding: 0 2px; border-radius: 2
 .comment-form-foot button:hover { opacity: .85; }
 .comment-form-foot button:disabled { opacity: .5; cursor: default; }
 
+/* ---------- 划线评论 ---------- */
+.article-body { position: relative; }
+mark.qmark {
+  background: linear-gradient(transparent 55%, rgba(214, 197, 138, .55) 55%);
+  color: inherit; padding: 0 1px; cursor: pointer; border-radius: 2px;
+  transition: background .2s;
+}
+mark.qmark:hover { background: linear-gradient(transparent 40%, rgba(214, 197, 138, .85) 40%); }
+#sel-bubble {
+  position: fixed; z-index: 200;
+}
+#sel-bubble button {
+  border: none; cursor: pointer; font-family: inherit;
+  background: var(--accent-deep); color: #fff; font-size: 13px;
+  padding: 6px 16px; border-radius: 999px; box-shadow: 0 4px 14px rgba(60, 60, 50, .25);
+}
+.quote-pop {
+  position: fixed; z-index: 210; width: min(340px, calc(100vw - 24px));
+  background: var(--panel); border: 1px solid var(--border-strong); border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(60, 60, 50, .18); padding: 14px 16px;
+}
+.quote-pop .qp-quote {
+  font-size: 13px; color: var(--accent-deep); margin-bottom: 10px; line-height: 1.7;
+  border-left: 3px solid var(--accent); padding-left: 10px;
+}
+.quote-pop .qp-item { margin-bottom: 10px; }
+.quote-pop .qp-text { font-size: 13px; line-height: 1.7; }
+.quote-pop .qp-add {
+  border: 1px dashed var(--border-strong); background: none; color: var(--accent-deep);
+  font-family: inherit; font-size: 12px; padding: 4px 12px; border-radius: 999px;
+  cursor: pointer; margin-top: 2px;
+}
+.quote-pop .qp-add:hover { border-color: var(--accent); }
+.quote-form-pop {
+  position: fixed; z-index: 220; width: min(340px, calc(100vw - 24px));
+  background: var(--panel); border: 1px solid var(--border-strong); border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(60, 60, 50, .18); padding: 14px 16px;
+}
+.quote-form-pop .qf-quote {
+  font-size: 13px; color: var(--accent-deep); margin-bottom: 10px; line-height: 1.7;
+  border-left: 3px solid var(--accent); padding-left: 10px;
+}
+.quote-form-pop input, .quote-form-pop textarea {
+  width: 100%; font-family: inherit; font-size: 13px; color: var(--ink);
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 12px; margin-bottom: 8px; resize: vertical;
+}
+.quote-form-pop textarea:focus, .quote-form-pop input:focus { outline: none; border-color: var(--accent); }
+.quote-form-pop .qf-btns { margin-left: auto; display: flex; gap: 8px; }
+.quote-form-pop .qf-cancel {
+  border: 1px solid var(--border-strong); background: none; color: var(--ink-light);
+  font-family: inherit; font-size: 13px; padding: 5px 14px; border-radius: 999px; cursor: pointer;
+}
+.quote-form-pop #qf-submit {
+  border: none; background: var(--accent); color: #fff; font-family: inherit;
+  font-size: 13px; letter-spacing: 2px; padding: 6px 18px; border-radius: 999px; cursor: pointer;
+}
+.quote-form-pop #qf-submit:disabled { opacity: .5; }
+
 /* ---------- 页脚 ---------- */
 .site-footer {
   border-top: 1px solid var(--border); padding: 22px; text-align: center;

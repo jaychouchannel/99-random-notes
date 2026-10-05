@@ -105,7 +105,9 @@
     if (ch.paragraphs.length === 0) {
       body = '<p class="empty-note">这一节还没有写下任何字。<br>故事停在这里,后面的部分,只能靠回忆补全了。</p>';
     } else {
-      body = ch.paragraphs.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('');
+      body = '<div class="article-body">' +
+        ch.paragraphs.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') +
+        '</div>';
     }
 
     var railPeople = present.slice(0, 12).map(function (x) {
@@ -217,6 +219,7 @@
       '<p>本站把原文拆成三个入口:<b>中间读正文,左侧翻章节,右侧认人物</b>。右侧"本章人物"由程序按别名自动统计生成;每个人物页面里的"相关片段"也是从原文自动抽取的,人物小传与标签则为整理时手写。</p>' +
       '<p>页面均为纯静态 HTML / CSS / JavaScript,数据内嵌于 js 文件中,无需服务器,双击 index.html 即可打开。</p>' +
       '<p>人名均为回忆录中的外号。愿这些名字和他们的故事,被记得久一点。</p>' +
+      '<p>读正文时,用鼠标划选任意一句话,可以针对这句话发表"引用留言"——被引用的句子会带上荧光标记,别人把鼠标停在上面就能看到这条线上的所有评论。</p>' +
       '</div>';
   }
 
@@ -301,6 +304,226 @@
     });
   }
 
+  /* ---------- 引用留言(划线评论) ---------- */
+  var QUOTE_API = 'https://jiushijiu.pages.dev/api/quotes';
+  var quoteGroups = [];        // [{para_idx, quote, comments:[{id,name,text,created_at}]}]
+  var quotePage = null;
+  var chapterParas = null;     // 当前章节原始段落
+  var pendingSel = null;       // 待提交的选区 {paraIdx, quote, rect}
+  var popLayer = null;
+
+  function trunc(s, n) { return s.length > n ? s.slice(0, n) + '……' : s; }
+
+  function paraWithMarks(pText, paraIdx) {
+    var groups = quoteGroups
+      .map(function (g, i) { return { id: i, quote: g.quote, para: g.para_idx, pos: g.para_idx === paraIdx ? pText.indexOf(g.quote) : -1 }; })
+      .filter(function (g) { return g.pos >= 0; })
+      .sort(function (a, b) { return a.pos - b.pos; });
+    if (!groups.length) return null;
+    var html = '', cur = 0;
+    groups.forEach(function (g) {
+      if (g.pos < cur) return; // 与前一个标记重叠,跳过
+      html += esc(pText.slice(cur, g.pos));
+      html += '<mark class="qmark" data-g="' + g.id + '">' + esc(g.quote) + '</mark>';
+      cur = g.pos + g.quote.length;
+    });
+    html += esc(pText.slice(cur));
+    return html;
+  }
+
+  function renderParaMarks() {
+    var paras = document.querySelectorAll('.article-body p');
+    if (!chapterParas) return;
+    paras.forEach(function (p, i) {
+      if (i >= chapterParas.length) return;
+      var html = paraWithMarks(chapterParas[i], i);
+      if (html !== null) p.innerHTML = html;
+    });
+  }
+
+  function groupQuoteRows(rows) {
+    var map = {}, groups = [];
+    rows.forEach(function (r) {
+      var k = r.para_idx + '::' + r.quote;
+      if (!(k in map)) { map[k] = { para_idx: r.para_idx, quote: r.quote, comments: [] }; groups.push(map[k]); }
+      map[k].comments.push({ id: r.id, name: r.name, text: r.text, created_at: r.created_at });
+    });
+    return groups;
+  }
+
+  function initQuotes(num) {
+    quotePage = 'chapter-' + num;
+    quoteGroups = [];
+    var ch = chapters.filter(function (c) { return c.num === num; })[0];
+    chapterParas = ch ? ch.paragraphs : null;
+    fetch(QUOTE_API + '?page=' + encodeURIComponent(quotePage))
+      .then(function (r) { return r.json(); })
+      .then(function (rows) {
+        if (!Array.isArray(rows)) return;
+        quoteGroups = groupQuoteRows(rows);
+        renderParaMarks();
+      })
+      .catch(function () {});
+  }
+
+  function refreshQuotes() {
+    return fetch(QUOTE_API + '?page=' + encodeURIComponent(quotePage))
+      .then(function (r) { return r.json(); })
+      .then(function (rows) {
+        if (Array.isArray(rows)) { quoteGroups = groupQuoteRows(rows); renderParaMarks(); }
+      });
+  }
+
+  function ensurePopLayer() {
+    if (popLayer) return;
+    popLayer = document.createElement('div');
+    popLayer.id = 'quote-layer';
+    popLayer.innerHTML =
+      '<div id="sel-bubble" hidden><button type="button" id="sel-bubble-btn">✍ 引用留言</button></div>' +
+      '<div id="quote-pop" class="quote-pop" hidden></div>' +
+      '<div id="quote-form-pop" class="quote-form-pop" hidden>' +
+      '  <div class="qf-quote" id="qf-quote"></div>' +
+      '  <input id="qf-name" maxlength="20" placeholder="怎么称呼你(可不填)">' +
+      '  <textarea id="qf-text" maxlength="500" rows="3" placeholder="针对这句话,写点什么……"></textarea>' +
+      '  <div class="comment-form-foot"><span class="comment-err" id="qf-err"></span>' +
+      '  <span class="qf-btns"><button type="button" class="qf-cancel" id="qf-cancel">取消</button>' +
+      '  <button type="button" id="qf-submit">发 表</button></span></div>' +
+      '</div>';
+    document.body.appendChild(popLayer);
+    bindQuoteEvents();
+  }
+
+  function hidePop(hideForm) {
+    var b = document.getElementById('sel-bubble');
+    var p = document.getElementById('quote-pop');
+    if (b) b.hidden = true;
+    if (p) { p.hidden = true; p.dataset.g = ''; }
+    if (hideForm) { var f = document.getElementById('quote-form-pop'); if (f) f.hidden = true; }
+  }
+
+  function placeFixed(el, rect, opts) {
+    el.style.left = '0px'; el.style.top = '0px'; el.hidden = false;
+    var w = el.offsetWidth, h = el.offsetHeight;
+    var x = opts.center ? rect.left + rect.width / 2 - w / 2 : rect.left;
+    var y = opts.below ? rect.bottom + 10 : rect.top - h - 10;
+    if (y < 70) y = opts.below ? rect.bottom + 10 : rect.bottom + 10;
+    x = Math.max(10, Math.min(x, window.innerWidth - w - 10));
+    y = Math.max(64, Math.min(y, window.innerHeight - h - 10));
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+  }
+
+  function showQuotePop(group, anchorRect) {
+    var pop = document.getElementById('quote-pop');
+    if (!pop.hidden && pop.dataset.g === String(quoteGroups.indexOf(group))) return; // 已在显示同一条
+    pop.dataset.g = String(quoteGroups.indexOf(group));
+    pop.innerHTML =
+      '<div class="qp-quote">「' + esc(trunc(group.quote, 60)) + '」</div>' +
+      group.comments.map(function (c) {
+        return '<div class="qp-item"><div class="c-head"><b>' + esc(c.name) + '</b><span>' +
+          esc(fmtTime(c.created_at)) + '</span></div><div class="qp-text">' + esc(c.text) + '</div></div>';
+      }).join('') +
+      '<button type="button" class="qp-add" id="qp-add">+ 也说一句</button>';
+    placeFixed(pop, anchorRect, { center: true, below: true });
+    document.getElementById('qp-add').addEventListener('click', function () {
+      var mark = document.querySelector('.qmark[data-g="' + quoteGroups.indexOf(group) + '"]');
+      openQuoteForm(group.para_idx, group.quote, mark ? mark.getBoundingClientRect() : anchorRect);
+      hidePop();
+    });
+  }
+
+  function openQuoteForm(paraIdx, quote, rect) {
+    pendingSel = { paraIdx: paraIdx, quote: quote };
+    document.getElementById('qf-quote').textContent = '「' + trunc(quote, 50) + '」';
+    document.getElementById('qf-err').textContent = '';
+    document.getElementById('qf-text').value = '';
+    var f = document.getElementById('quote-form-pop');
+    placeFixed(f, rect, { center: true, below: false });
+    document.getElementById('qf-text').focus();
+  }
+
+  function bindQuoteEvents() {
+    // 划选正文后浮出按钮
+    document.addEventListener('mouseup', function (e) {
+      if (e.target.closest && e.target.closest('#quote-layer')) return;
+      var sel = window.getSelection();
+      var text = sel && sel.rangeCount ? sel.toString().trim() : '';
+      var bubble = document.getElementById('sel-bubble');
+      if (!text || text.length < 2) { bubble.hidden = true; return; }
+      var range = sel.getRangeAt(0);
+      var p1 = range.startContainer.parentElement, p2 = range.endContainer.parentElement;
+      var para1 = p1 && p1.closest ? p1.closest('.article-body p') : null;
+      var para2 = p2 && p2.closest ? p2.closest('.article-body p') : null;
+      if (!para1 || para1 !== para2) { bubble.hidden = true; return; }
+      var quote = text.length > 150 ? text.slice(0, 150) : text;
+      if (para1.textContent.indexOf(quote) === -1) { bubble.hidden = true; return; }
+      var paras = document.querySelectorAll('.article-body p');
+      var paraIdx = Array.prototype.indexOf.call(paras, para1);
+      pendingSel = { paraIdx: paraIdx, quote: quote };
+      placeFixed(bubble, range.getBoundingClientRect(), { center: true, below: false });
+      bubble.hidden = false;
+    });
+    // 点标记 → 悬停/点击弹出该句的评论
+    document.addEventListener('mouseover', function (e) {
+      var mark = e.target.closest && e.target.closest('.qmark');
+      if (!mark) return;
+      var group = quoteGroups[Number(mark.dataset.g)];
+      if (group) showQuotePop(group, mark.getBoundingClientRect());
+    });
+    document.addEventListener('mousedown', function (e) {
+      if (!e.target.closest) return;
+      if (e.target.id === 'sel-bubble-btn' || e.target.closest('.quote-pop')) return;
+      if (!e.target.closest('.qmark')) hidePop();
+      if (!e.target.closest('#quote-form-pop')) {
+        var f = document.getElementById('quote-form-pop');
+        if (f) f.hidden = true;
+      }
+    });
+    // 气泡按钮:打开填写表单(用 mousedown 防止选区被清除)
+    document.addEventListener('mousedown', function (e) {
+      if (e.target.id === 'sel-bubble-btn') e.preventDefault();
+    });
+    document.getElementById('sel-bubble-btn').addEventListener('click', function () {
+      if (pendingSel) {
+        var bubble = document.getElementById('sel-bubble');
+        openQuoteForm(pendingSel.paraIdx, pendingSel.quote, bubble.hidden ? { left: window.innerWidth / 2, top: 200, width: 0, bottom: 200 } : bubble.getBoundingClientRect());
+        bubble.hidden = true;
+      }
+    });
+    document.getElementById('qf-cancel').addEventListener('click', function () { hidePop(true); });
+    document.getElementById('qf-submit').addEventListener('click', submitQuote);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') hidePop(true);
+    });
+    window.addEventListener('scroll', function () { hidePop(); }, true);
+  }
+
+  function submitQuote() {
+    var errEl = document.getElementById('qf-err');
+    var btn = document.getElementById('qf-submit');
+    var name = document.getElementById('qf-name').value.trim();
+    var text = document.getElementById('qf-text').value.trim();
+    errEl.textContent = '';
+    if (!text) { errEl.textContent = '写点内容再发表吧'; return; }
+    btn.disabled = true; btn.textContent = '发表中……';
+    fetch(QUOTE_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        page: quotePage, para_idx: pendingSel && pendingSel.paraIdx,
+        quote: pendingSel && pendingSel.quote, name: name, text: text
+      })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error(res.d.error || '发表失败');
+        hidePop(true);
+        return refreshQuotes();
+      })
+      .catch(function (err) { errEl.textContent = err.message; })
+      .finally(function () { btn.disabled = false; btn.textContent = '发 表'; });
+  }
+
   /* ---------- 路由 ---------- */
   function route() {
     var hash = location.hash.replace(/^#\/?/, '');
@@ -328,6 +551,7 @@
     app.innerHTML = html;
     fontCtrl.hidden = !showFont;
     initComments();
+    if (parts[0] === 'read' && showFont) { ensurePopLayer(); initQuotes(parts[1]); }
 
     document.querySelectorAll('.site-nav a').forEach(function (a) {
       a.classList.toggle('active', a.dataset.nav === navKey);
