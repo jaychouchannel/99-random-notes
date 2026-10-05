@@ -1,6 +1,20 @@
 // 手工整理的人物 / 时间线 / 语录数据(相关片段由程序自动从正文抽取)
 window.EXTRAS = {
 
+// 人物关系图分组:靠前的组优先作为人物的主分组(决定颜色和归属)
+groups: [
+  { name: '215 宿舍', members: ['gaoji', 'dingding', 'wenju', 'luobao'] },
+  { name: '216 宿舍', members: ['hetang', 'dazhi'] },
+  { name: '212 宿舍', members: ['caoxuan', 'zuoluo', 'sili', 'tangge'] },
+  { name: '214 宿舍', members: ['xun', 'jingyu'] },
+  { name: '老师们', members: ['zou', 'taoge', 'zhongqiu', 'changle'] },
+  { name: 'hyF4 球团', members: ['qange', 'dingding', 'gaoji', 'hetang'] },
+  { name: '班委 · 课代表', members: ['qange', 'naige', 'hetang', 'sili', 'tianyu', 'gaoji', 'dingding', 'tangge', 'chuange', 'meiji', 'zuoluo', 'zhengyu', 'douzi', 'xun'] },
+  { name: '球场好手', members: ['sili', 'meikai', 'caoxuan', 'zuoluo', 'peng', 'jingyu'] },
+  { name: '诗与文学', members: ['hetang', 'dazhi', 'gaoji'] },
+  { name: '其他同窗', members: ['jige', 'dike', 'dengshao', 'yuefei'] }
+],
+
 characters: [
   {
     id: 'zou', name: '邹', aliases: ['邹'],
