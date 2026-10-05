@@ -26,6 +26,7 @@ function json(data, status, origin) {
 
 function originAllowed(request) {
   const origin = request.headers.get('Origin') || '';
+  if (!origin) return '*'; // 同源 GET 不带 Origin 头,直接放行
   if (ALLOWED_EXACT.includes(origin)) return origin;
   if (origin === 'null') return origin; // 本地双击 index.html 打开
   try {

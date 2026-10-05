@@ -254,6 +254,7 @@
       .then(function (r) { return r.json(); })
       .then(function (list) {
         if (!document.getElementById('comment-list')) return;
+        if (!Array.isArray(list)) throw new Error('bad response');
         if (!list.length) {
           listEl.innerHTML = '<div class="comment-empty">还没有人留言,来抢个沙发吧。</div>';
           return;
