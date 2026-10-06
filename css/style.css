@@ -312,6 +312,40 @@ mark.qmark:hover { background: linear-gradient(transparent 40%, rgba(214, 197, 1
   .hot-meta { margin-left: auto; }
 }
 
+/* ---------- 顶栏搜索 ---------- */
+.search-box { position: relative; }
+.search-box input {
+  width: 210px; padding: 6px 14px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--panel); color: var(--ink); font-family: inherit; font-size: 13.5px;
+  transition: border-color .2s, width .3s;
+}
+.search-box input:focus { outline: none; border-color: var(--accent); width: 250px; }
+.search-results {
+  position: absolute; top: calc(100% + 8px); right: 0; width: 380px; max-height: 65vh;
+  overflow-y: auto; background: var(--panel); border: 1px solid var(--border-strong);
+  border-radius: 10px; box-shadow: 0 12px 32px rgba(60, 60, 50, .16); z-index: 80; padding: 6px;
+}
+.sr-group {
+  font-size: 11px; letter-spacing: 3px; color: var(--muted);
+  padding: 8px 10px 4px; border-bottom: 1px solid var(--border);
+}
+.sr-item { display: block; padding: 8px 10px; border-radius: 8px; }
+.sr-item:hover { background: var(--panel-2); }
+.sr-item .sr-title { display: block; font-size: 14px; color: var(--ink); line-height: 1.6; }
+.sr-item .sr-excerpt {
+  display: block; font-size: 12.5px; color: var(--muted); line-height: 1.7;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;
+}
+.sr-item mark { background: var(--mark); }
+.sr-empty { padding: 16px 12px; font-size: 13.5px; color: var(--muted); text-align: center; }
+
+@media (max-width: 800px) {
+  .search-box { order: 3; flex-basis: 100%; margin-left: 0; }
+  .search-box input { width: 100%; }
+  .search-box input:focus { width: 100%; }
+  .search-results { left: 0; right: 0; width: auto; }
+}
+
 /* ---------- 页脚 ---------- */
 .site-footer {
   border-top: 1px solid var(--border); padding: 22px; text-align: center;
