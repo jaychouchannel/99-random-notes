@@ -33,7 +33,7 @@
           while ((idx = p.indexOf(a, idx)) !== -1) { n++; idx += a.length; }
         });
       });
-      if (n > 0) { total += n; chapterNums.push(ch.num); }
+      if (n > 0) { total += n; chapterNums.push(ch.id); }
     });
     charStats[c.id] = { total: total, chapters: chapterNums };
   });
@@ -69,7 +69,7 @@
       '  <h1>九十九散记</h1>' +
       '  <div class="en">Class 7, Grade 1 — a memoir in fragments</div>' +
       '  <div class="home-divider"></div>' +
-      '  <p class="home-intro">一部关于高一七班的回忆录:军训只办了一天,班主任开着白色大奔冲进篮球场,班里一半的人在打球,另一半在给打球的人起外号。故事从新生报到开始,封校、网课、世界杯、千纸鹤与一场高烧,一直写到高一上学期在期末考中收官。</p>' +
+      '  <p class="home-intro">一部关于高一七班的回忆录:军训只办了一天,班主任开着白色大奔冲进篮球场,班里一半的人在打球,另一半在给打球的人起外号。故事从新生报到开始,封校、网课、世界杯、千纸鹤与一场高烧,高一上学期在期末考中收官,高一下学期的故事正在续写。</p>' +
       '  <div class="home-stats">' +
       '    <div class="home-stat"><div class="n">' + chapters.length + '</div><div class="l">章节</div></div>' +
       '    <div class="home-stat"><div class="n">' + peopleCount + '</div><div class="l">人物</div></div>' +
@@ -85,7 +85,7 @@
   }
 
   function viewReader(num) {
-    var idx = chapters.findIndex(function (c) { return c.num === num; });
+    var idx = chapters.findIndex(function (c) { return c.id === num; });
     if (idx === -1) return viewNotFound();
     var ch = chapters[idx];
     var prev = chapters[idx - 1], next = chapters[idx + 1];
@@ -96,8 +96,10 @@
     }).filter(function (x) { return x.n > 0; })
       .sort(function (a, b) { return b.n - a.n; });
 
-    var toc = chapters.map(function (c) {
-      return '<a class="toc-item' + (c.num === num ? ' active' : '') + '" href="#/read/' + c.num + '">' +
+    var toc = chapters.map(function (c, i) {
+      // 第二学期重新编号(01、02……),目录里加分隔标签
+      var div = (i > 0 && chapters[i - 1].vol !== c.vol) ? '<div class="toc-vol">高一下学期</div>' : '';
+      return div + '<a class="toc-item' + (c.id === num ? ' active' : '') + '" href="#/read/' + c.id + '">' +
         '<span class="no">' + c.num + '</span>' + esc(c.title) + '</a>';
     }).join('');
 
@@ -121,15 +123,15 @@
       '  <aside class="rail rail-left"><div class="rail-label">章 节</div>' + toc + '</aside>' +
       '  <article class="article">' +
       '    <div class="article-head">' +
-      '      <div class="no">第 ' + ch.num + ' 节</div>' +
+      '      <div class="no">第 ' + ch.num + ' 节' + (ch.vol === 2 ? ' · 高一下' : '') + '</div>' +
       '      <h1>' + esc(ch.title) + '</h1><div class="rule"></div>' +
       '    </div>' + body +
       '    <nav class="article-nav">' +
-      (prev ? '<a href="#/read/' + prev.num + '"><span class="dir">上一节</span><span class="ttl">' + esc(prev.title) + '</span></a>' : '<span></span>') +
-      (next ? '<a class="next" href="#/read/' + next.num + '"><span class="dir">下一节</span><span class="ttl">' + esc(next.title) + '</span></a>' : '<span></span>') +
+      (prev ? '<a href="#/read/' + prev.id + '"><span class="dir">上一节</span><span class="ttl">' + esc(prev.title) + '</span></a>' : '<span></span>') +
+      (next ? '<a class="next" href="#/read/' + next.id + '"><span class="dir">下一节</span><span class="ttl">' + esc(next.title) + '</span></a>' : '<span></span>') +
       '    </nav>' +
       '<div id="hot-quotes" class="hot-quotes" hidden></div>' +
-      commentsHtml('chapter-' + ch.num, ch.title) +
+      commentsHtml('chapter-' + ch.id, ch.title) +
       '  </article>' +
       '  <aside class="rail rail-right"><div class="rail-label">本 章 人 物</div>' +
       (railPeople || '<div style="font-size:13px;color:var(--muted);padding:8px">本节未提及已收录人物</div>') +
@@ -172,7 +174,8 @@
     });
 
     var appear = st.chapters.map(function (n) {
-      return '<a href="#/read/' + n + '" title="第 ' + n + ' 节">' + n + '</a>';
+      var c = chapters.filter(function (x) { return x.id === n; })[0];
+      return '<a href="#/read/' + n + '" title="第 ' + (c ? c.num : n) + ' 节">' + (c ? c.num : n) + '</a>';
     }).join('');
 
     var exHtml = excerpts.slice(0, 40).map(function (e) {
@@ -216,7 +219,7 @@
   function viewAbout() {
     return '<div class="page-narrow about">' +
       '<h1 class="page-title">关于本站</h1><p class="page-sub">一部 Word 文档的另一种打开方式</p>' +
-      '<p>《九十九散记》原是一份 Word 文档,记录了作者(外号"高鸡")高中入学第一年在七班的经历与人物。全书 25 节、约 ' + Math.round(DATA.wordCount / 1000) + ' 千字,从新生报到一直写到高一上学期结束。</p>' +
+      '<p>《九十九散记》原是一份 Word 文档,记录了作者(外号"高鸡")高中入学第一年在七班的经历与人物。全书 ' + chapters.length + ' 节、约 ' + Math.round(DATA.wordCount / 1000) + ' 千字,从新生报到一直写到高一下学期刚刚开篇的地方,仍在续写。</p>' +
       '<p>本站把原文拆成三个入口:<b>中间读正文,左侧翻章节,右侧认人物</b>。右侧"本章人物"由程序按别名自动统计生成;每个人物页面里的"相关片段"也是从原文自动抽取的,人物小传与标签则为整理时手写。</p>' +
       '<p>页面均为纯静态 HTML / CSS / JavaScript,数据内嵌于 js 文件中,无需服务器,双击 index.html 即可打开。</p>' +
       '<p>人名均为回忆录中的外号。愿这些名字和他们的故事,被记得久一点。</p>' +
@@ -226,7 +229,7 @@
 
   function viewNotFound() {
     return '<div class="page-narrow" style="text-align:center;padding-top:100px">' +
-      '<h1 class="page-title">404</h1><p class="page-sub">这一页不存在——就像第 23 节之后的故事一样。</p>' +
+      '<h1 class="page-title">404</h1><p class="page-sub">这一页不存在——就像那九十九只没送出去的千纸鹤一样。</p>' +
       '<a class="chip" href="#/">回到首页</a></div>';
   }
 
@@ -434,7 +437,7 @@
   function initQuotes(num) {
     quotePage = 'chapter-' + num;
     quoteGroups = [];
-    var ch = chapters.filter(function (c) { return c.num === num; })[0];
+    var ch = chapters.filter(function (c) { return c.id === num; })[0];
     chapterParas = ch ? ch.paragraphs : null;
     fetch(QUOTE_API + '?page=' + encodeURIComponent(quotePage))
       .then(function (r) { return r.json(); })
@@ -728,7 +731,7 @@
     function doSearch(q) {
       var chap = [], ppl = [], quo = [];
       chapters.forEach(function (ch) {
-        var hit = { num: ch.num, title: ch.title, excerpt: null };
+        var hit = { id: ch.id, num: ch.num, title: ch.title, excerpt: null };
         var tl = ch.title.toLowerCase();
         if (tl.indexOf(q) !== -1) { chap.push(hit); return; }
         for (var i = 0; i < ch.paragraphs.length; i++) {
@@ -756,7 +759,7 @@
       if (chap.length) {
         html += '<div class="sr-group">章节</div>';
         chap.slice(0, 6).forEach(function (h) {
-          html += '<a class="sr-item" href="#/read/' + h.num + '">' +
+          html += '<a class="sr-item" href="#/read/' + h.id + '">' +
             '<span class="sr-title">' + hi(h.num + ' ' + h.title, q) + '</span>' +
             (h.excerpt ? '<span class="sr-excerpt">' + hi(h.excerpt.p, q) + '</span>' : '') +
             '</a>';
@@ -847,7 +850,7 @@
     // 每页动态标题(分享/历史记录可辨识)
     var pageTitle = '';
     if (parts[0] === 'read') {
-      var cur = chapters.filter(function (c) { return c.num === parts[1]; })[0];
+      var cur = chapters.filter(function (c) { return c.id === parts[1]; })[0];
       if (cur) pageTitle = '第 ' + cur.num + ' 节 · ' + cur.title;
     } else if (parts[0] === 'characters') pageTitle = '人物图鉴';
     else if (parts[0] === 'character') {
