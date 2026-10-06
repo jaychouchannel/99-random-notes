@@ -97,8 +97,9 @@
       .sort(function (a, b) { return b.n - a.n; });
 
     var toc = chapters.map(function (c, i) {
-      // 第二学期重新编号(01、02……),目录里加分隔标签
-      var div = (i > 0 && chapters[i - 1].vol !== c.vol) ? '<div class="toc-vol">高一下学期</div>' : '';
+      // 学期分隔标签:开头标「高一上学期」,重新编号处标「高一下学期」
+      var div = (i === 0 || chapters[i - 1].vol !== c.vol)
+        ? '<div class="toc-vol">' + (c.vol === 2 ? '高一下学期' : '高一上学期') + '</div>' : '';
       return div + '<a class="toc-item' + (c.id === num ? ' active' : '') + '" href="#/read/' + c.id + '">' +
         '<span class="no">' + c.num + '</span>' + esc(c.title) + '</a>';
     }).join('');
