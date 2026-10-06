@@ -108,6 +108,7 @@ mark { background: var(--mark); color: inherit; padding: 0 2px; border-radius: 2
 .toc-item:hover { background: var(--panel-2); }
 .toc-item.active { background: var(--panel); border: 1px solid var(--border); color: var(--accent-deep); }
 .toc-item .no { font-size: 0.6875rem; color: var(--muted); margin-right: 8px; font-style: italic; }
+.toc-vol { margin: 12px 0 4px; padding: 4px 10px; font-size: 0.6875rem; letter-spacing: 0.2em; color: var(--muted); border-bottom: 1px solid var(--border); }
 
 .person-rail-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 6px; }
 .person-rail-item:hover { background: var(--panel-2); }
