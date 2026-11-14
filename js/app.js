@@ -4,6 +4,7 @@
 
   var app = document.getElementById('app');
   var fontCtrl = document.getElementById('font-ctrl');
+  var themeToggle = document.getElementById('theme-toggle');
   var progressBar = document.getElementById('progress-bar');
 
   /* ---------- 基础数据 ---------- */
@@ -876,6 +877,25 @@
     progressBar.style.width = ratio.toFixed(2) + '%';
   }
   window.addEventListener('scroll', updateProgress, { passive: true });
+
+  /* ---------- 主题 ---------- */
+  var theme = null;
+  try { theme = localStorage.getItem('jiushijiu-theme'); } catch (e) {}
+  if (theme !== 'light' && theme !== 'dark') {
+    theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function applyTheme() {
+    document.documentElement.dataset.theme = theme;
+    themeToggle.querySelector('span').textContent = theme === 'dark' ? '☀' : '☾';
+    themeToggle.title = theme === 'dark' ? '切换浅色模式' : '切换深色模式';
+    themeToggle.setAttribute('aria-label', themeToggle.title);
+  }
+  themeToggle.addEventListener('click', function () {
+    theme = theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('jiushijiu-theme', theme); } catch (e) {}
+    applyTheme();
+  });
+  applyTheme();
 
   /* ---------- 字号 ---------- */
   // 三档直接改 html 根字号,全站 rem 字号一起缩放
