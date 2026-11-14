@@ -703,7 +703,7 @@
       s += '<g class="gnode" data-id="' + p.c.id + '" style="cursor:pointer">' +
         '<title>' + esc(p.c.name + ' — ' + p.c.role) + '\n' + esc(memberships) + '</title>' +
         '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="7" fill="' + col + '" stroke="#fbfaf7" stroke-width="2"/>' +
-        '<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 22).toFixed(1) + '" text-anchor="middle" font-size="12.5" fill="#6b665c">' + esc(p.c.name) + '</text></g>';
+        '<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 22).toFixed(1) + '" text-anchor="middle" font-size="12.5" fill="var(--ink-light)">' + esc(p.c.name) + '</text></g>';
     });
     svg.innerHTML = s;
     svg.onclick = function (e) {
