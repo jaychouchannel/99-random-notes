@@ -4,6 +4,7 @@
 
   var app = document.getElementById('app');
   var fontCtrl = document.getElementById('font-ctrl');
+  var themeToggle = document.getElementById('theme-toggle');
   var progressBar = document.getElementById('progress-bar');
 
   /* ---------- 基础数据 ---------- */
@@ -702,7 +703,7 @@
       s += '<g class="gnode" data-id="' + p.c.id + '" style="cursor:pointer">' +
         '<title>' + esc(p.c.name + ' — ' + p.c.role) + '\n' + esc(memberships) + '</title>' +
         '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="7" fill="' + col + '" stroke="#fbfaf7" stroke-width="2"/>' +
-        '<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 22).toFixed(1) + '" text-anchor="middle" font-size="12.5" fill="#6b665c">' + esc(p.c.name) + '</text></g>';
+        '<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 22).toFixed(1) + '" text-anchor="middle" font-size="12.5" fill="var(--ink-light)">' + esc(p.c.name) + '</text></g>';
     });
     svg.innerHTML = s;
     svg.onclick = function (e) {
@@ -876,6 +877,25 @@
     progressBar.style.width = ratio.toFixed(2) + '%';
   }
   window.addEventListener('scroll', updateProgress, { passive: true });
+
+  /* ---------- 主题 ---------- */
+  var theme = null;
+  try { theme = localStorage.getItem('jiushijiu-theme'); } catch (e) {}
+  if (theme !== 'light' && theme !== 'dark') {
+    theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function applyTheme() {
+    document.documentElement.dataset.theme = theme;
+    themeToggle.querySelector('span').textContent = theme === 'dark' ? '☀' : '☾';
+    themeToggle.title = theme === 'dark' ? '切换浅色模式' : '切换深色模式';
+    themeToggle.setAttribute('aria-label', themeToggle.title);
+  }
+  themeToggle.addEventListener('click', function () {
+    theme = theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('jiushijiu-theme', theme); } catch (e) {}
+    applyTheme();
+  });
+  applyTheme();
 
   /* ---------- 字号 ---------- */
   // 三档直接改 html 根字号,全站 rem 字号一起缩放
