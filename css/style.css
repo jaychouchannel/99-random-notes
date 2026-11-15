@@ -1,4 +1,4 @@
-/* ============ 九十九散记 · 淡色素色 ============ */
+/* ============ 九十九散记 · 淡色素色 / 深色模式 ============ */
 :root {
   --bg: #f5f3ee;
   --panel: #fbfaf7;
@@ -11,7 +11,27 @@
   --accent: #7c8f7c;
   --accent-deep: #5d705d;
   --mark: #ece4cd;
+  --header-bg: rgba(245, 243, 238, .92);
+  --shadow: rgba(60, 60, 50, .18);
+  --mark-underline: rgba(214, 197, 138, .55);
   --fs-body: 1.0625rem;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1d211e;
+  --panel: #252b27;
+  --panel-2: #303832;
+  --ink: #e7e5dc;
+  --ink-light: #c0c5ba;
+  --muted: #9da69a;
+  --border: #3b463d;
+  --border-strong: #526055;
+  --accent: #9bb19b;
+  --accent-deep: #b6cbb3;
+  --mark: #554f35;
+  --header-bg: rgba(29, 33, 30, .92);
+  --shadow: rgba(0, 0, 0, .35);
+  --mark-underline: rgba(193, 174, 94, .7);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -34,7 +54,7 @@ mark { background: var(--mark); color: inherit; padding: 0 2px; border-radius: 2
 .site-header {
   display: flex; align-items: center; gap: 28px;
   padding: 14px 32px; border-bottom: 1px solid var(--border);
-  background: rgba(245, 243, 238, .92); backdrop-filter: blur(6px);
+  background: var(--header-bg); backdrop-filter: blur(6px);
   position: sticky; top: 0; z-index: 50;
 }
 .brand { display: flex; align-items: baseline; gap: 6px; }
@@ -53,6 +73,12 @@ mark { background: var(--mark); color: inherit; padding: 0 2px; border-radius: 2
   background: var(--panel); color: var(--ink-light); cursor: pointer; font-family: inherit; font-size: 0.75rem;
 }
 .font-ctrl button.active { border-color: var(--accent); color: var(--accent-deep); }
+.theme-toggle {
+  width: 30px; height: 30px; border: 1px solid var(--border); border-radius: 50%;
+  background: var(--panel); color: var(--ink-light); cursor: pointer;
+  font-family: inherit; font-size: 1rem; line-height: 1; transition: all .2s;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent-deep); }
 
 /* ---------- 通用 ---------- */
 #app { min-height: calc(100vh - 160px); }
@@ -225,11 +251,11 @@ mark { background: var(--mark); color: inherit; padding: 0 2px; border-radius: 2
 /* ---------- 划线评论 ---------- */
 .article-body { position: relative; }
 mark.qmark {
-  background: linear-gradient(transparent 55%, rgba(214, 197, 138, .55) 55%);
+  background: linear-gradient(transparent 55%, var(--mark-underline) 55%);
   color: inherit; padding: 0 1px; cursor: pointer; border-radius: 2px;
   transition: background .2s;
 }
-mark.qmark:hover { background: linear-gradient(transparent 40%, rgba(214, 197, 138, .85) 40%); }
+mark.qmark:hover { background: linear-gradient(transparent 40%, var(--mark-underline) 40%); }
 #sel-bubble {
   position: fixed; z-index: 200;
 }
@@ -241,7 +267,7 @@ mark.qmark:hover { background: linear-gradient(transparent 40%, rgba(214, 197, 1
 .quote-pop {
   position: fixed; z-index: 210; width: min(340px, calc(100vw - 24px));
   background: var(--panel); border: 1px solid var(--border-strong); border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(60, 60, 50, .18); padding: 14px 16px;
+  box-shadow: 0 10px 30px var(--shadow); padding: 14px 16px;
 }
 .quote-pop .qp-quote {
   font-size: 0.8125rem; color: var(--accent-deep); margin-bottom: 10px; line-height: 1.7;
@@ -324,7 +350,7 @@ mark.qmark:hover { background: linear-gradient(transparent 40%, rgba(214, 197, 1
 .search-results {
   position: absolute; top: calc(100% + 8px); right: 0; width: 380px; max-height: 65vh;
   overflow-y: auto; background: var(--panel); border: 1px solid var(--border-strong);
-  border-radius: 10px; box-shadow: 0 12px 32px rgba(60, 60, 50, .16); z-index: 80; padding: 6px;
+  border-radius: 10px; box-shadow: 0 12px 32px var(--shadow); z-index: 80; padding: 6px;
 }
 .sr-group {
   font-size: 11px; letter-spacing: 3px; color: var(--muted);
